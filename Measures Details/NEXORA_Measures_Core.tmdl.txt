@@ -1,0 +1,885 @@
+createOrReplace
+
+	ref table 'ALL Measures'
+
+		/// Latest order date in the data, ignoring all filters.
+		measure 'Data Through Date' = CALCULATE(MAX(Orders[order_date]), REMOVEFILTERS())
+			formatString: dd-mmm-yyyy
+			displayFolder: 00 Utilities
+
+		/// Footer text for the report.
+		measure 'Data Through Label' = "Data through " & FORMAT([Data Through Date], "dd mmm yyyy")
+			displayFolder: 00 Utilities
+
+		/// Shows the selected year or All Years.
+		measure 'Selected Year' = IF(HASONEVALUE('Calendar'[Year]), FORMAT(SELECTEDVALUE('Calendar'[Year]), "0"), "All Years")
+			displayFolder: 00 Utilities
+
+		/// Subtitle describing the selected period.
+		measure 'Period Label' =
+				IF(HASONEVALUE('Calendar'[Year]),
+					"Year " & FORMAT(SELECTEDVALUE('Calendar'[Year]), "0"),
+					FORMAT(MIN('Calendar'[Date]), "MMM yyyy") & " – " & FORMAT(MAX('Calendar'[Date]), "MMM yyyy"))
+			displayFolder: 00 Utilities
+
+		/// Number of days with at least one valid order.
+		measure 'Active Days' =
+				CALCULATE(
+					DISTINCTCOUNT(Orders[order_date]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 00 Utilities
+
+		/// Quantity x unit price before discounts, tax and shipping. Cancelled orders excluded.
+		measure 'Gross Sales' =
+				CALCULATE(
+					SUM(OrderItems[gross_sales]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Total discount value given.
+		measure Discount =
+				CALCULATE(
+					SUM(OrderItems[discount_amount]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		measure Tax =
+				CALCULATE(
+					SUM(OrderItems[tax_amount]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		measure 'Shipping Cost' =
+				CALCULATE(
+					SUM(OrderItems[shipping_cost]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Gross - discount + tax + shipping (dataset definition). Cancelled orders excluded.
+		measure 'Net Sales' =
+				CALCULATE(
+					SUM(OrderItems[net_sales]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		measure 'Product Cost' =
+				CALCULATE(
+					SUM(OrderItems[product_cost]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Net sales - product cost - shipping cost (dataset definition).
+		measure 'Total Profit' =
+				CALCULATE(
+					SUM(OrderItems[profit]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		measure 'Units Sold' =
+				CALCULATE(
+					SUM(OrderItems[quantity]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Distinct valid orders (cancelled excluded).
+		measure 'Total Orders' =
+				CALCULATE(
+					DISTINCTCOUNT(OrderItems[order_id]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Number of order line items.
+		measure 'Order Lines' =
+				CALCULATE(
+					COUNTROWS(OrderItems),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Gross sales minus discounts (excludes tax and shipping).
+		measure 'Net Revenue' = [Gross Sales] - [Discount]
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Product profit before tax and shipping effects.
+		measure 'Merchandise Profit' = [Net Revenue] - [Product Cost]
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Total profit / net sales (same definition as the dataset).
+		measure 'Profit Margin %' = DIVIDE([Total Profit], [Net Sales])
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Product margin on net revenue, before tax and shipping.
+		measure 'Merchandise Margin %' = DIVIDE([Merchandise Profit], [Net Revenue])
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Core KPIs
+
+		/// Average order value.
+		measure AOV = DIVIDE([Net Sales], [Total Orders])
+			formatString: \$#,0.00
+			displayFolder: 01 Sales & Profit\Basket & Averages
+
+		measure 'Units per Order' = DIVIDE([Units Sold], [Total Orders])
+			formatString: 0.00
+			displayFolder: 01 Sales & Profit\Basket & Averages
+
+		measure 'Profit per Order' = DIVIDE([Total Profit], [Total Orders])
+			formatString: \$#,0.00
+			displayFolder: 01 Sales & Profit\Basket & Averages
+
+		measure 'Avg Selling Price' = DIVIDE([Gross Sales], [Units Sold])
+			formatString: \$#,0.00
+			displayFolder: 01 Sales & Profit\Basket & Averages
+
+		measure 'Profit per Unit' = DIVIDE([Total Profit], [Units Sold])
+			formatString: \$#,0.00
+			displayFolder: 01 Sales & Profit\Basket & Averages
+
+		/// Discount value as % of gross sales.
+		measure 'Discount %' = DIVIDE([Discount], [Gross Sales])
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		measure 'Avg Line Discount %' =
+				CALCULATE(
+					AVERAGE(OrderItems[discount_percentage]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		/// Share of net sales on lines discounted 30% or more.
+		measure 'High Discount Sales Share %' = DIVIDE(CALCULATE([Net Sales], OrderItems[discount_percentage] >= 0.3), [Net Sales])
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		measure 'Margin % (Discount >= 30%)' = DIVIDE(CALCULATE([Total Profit], OrderItems[discount_percentage] >= 0.3), CALCULATE([Net Sales], OrderItems[discount_percentage] >= 0.3))
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		measure 'Margin % (Discount < 10%)' = DIVIDE(CALCULATE([Total Profit], OrderItems[discount_percentage] < 0.1), CALCULATE([Net Sales], OrderItems[discount_percentage] < 0.1))
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		/// Margin points lost on heavily discounted lines.
+		measure 'Margin Erosion from Discounts (pts)' = [Margin % (Discount < 10%)] - [Margin % (Discount >= 30%)]
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Discounts
+
+		/// Net sales including cancelled orders.
+		measure 'Net Sales (All Orders)' = SUM(OrderItems[net_sales])
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		/// All orders including cancelled.
+		measure 'Orders (All Status)' = DISTINCTCOUNT(OrderItems[order_id])
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Cancelled Orders' = [Orders (All Status)] - [Total Orders]
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Cancelled Sales' = [Net Sales (All Orders)] - [Net Sales]
+			formatString: \$#,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Cancellation Rate %' = DIVIDE([Cancelled Orders], [Orders (All Status)])
+			formatString: 0.0%
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Completed Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[order_status] = "Completed")
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Pending Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[order_status] = "Pending")
+			formatString: #,0
+			displayFolder: 01 Sales & Profit\Order Status
+
+		measure 'Net Sales LY' = CALCULATE([Net Sales], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Net Sales YoY %' = DIVIDE([Net Sales] - [Net Sales LY], [Net Sales LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Profit LY' = CALCULATE([Total Profit], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Profit YoY %' = DIVIDE([Total Profit] - [Profit LY], [Profit LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Orders LY' = CALCULATE([Total Orders], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: #,0
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Orders YoY %' = DIVIDE([Total Orders] - [Orders LY], [Orders LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'AOV LY' = CALCULATE([AOV], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: \$#,0.00
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'AOV YoY %' = DIVIDE([AOV] - [AOV LY], [AOV LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Customers LY' = CALCULATE([Active Customers], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: #,0
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Customers YoY %' = DIVIDE([Active Customers] - [Customers LY], [Customers LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Profit Margin LY' = CALCULATE([Profit Margin %], SAMEPERIODLASTYEAR('Calendar'[Date]))
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Margin Change (pts)' = IF(ISBLANK([Profit Margin LY]), BLANK(), [Profit Margin %] - [Profit Margin LY])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Year over Year
+
+		measure 'Net Sales PM' = CALCULATE([Net Sales], DATEADD('Calendar'[Date], -1, MONTH))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Net Sales MoM %' = DIVIDE([Net Sales] - [Net Sales PM], [Net Sales PM])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Profit PM' = CALCULATE([Total Profit], DATEADD('Calendar'[Date], -1, MONTH))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Profit MoM %' = DIVIDE([Total Profit] - [Profit PM], [Profit PM])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Orders PM' = CALCULATE([Total Orders], DATEADD('Calendar'[Date], -1, MONTH))
+			formatString: #,0
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Orders MoM %' = DIVIDE([Total Orders] - [Orders PM], [Orders PM])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Month over Month
+
+		measure 'Net Sales YTD' = CALCULATE([Net Sales], DATESYTD('Calendar'[Date]))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Running Totals
+
+		measure 'Profit YTD' = CALCULATE([Total Profit], DATESYTD('Calendar'[Date]))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Running Totals
+
+		measure 'Net Sales LYTD' = CALCULATE([Net Sales], DATESYTD(SAMEPERIODLASTYEAR('Calendar'[Date])))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Running Totals
+
+		measure 'YTD vs LYTD %' = DIVIDE([Net Sales YTD] - [Net Sales LYTD], [Net Sales LYTD])
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Running Totals
+
+		measure 'Net Sales 3M Rolling' = CALCULATE([Net Sales], DATESINPERIOD('Calendar'[Date], MAX('Calendar'[Date]), -3, MONTH))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Rolling Windows
+
+		/// Trailing twelve months net sales.
+		measure 'Net Sales TTM' = CALCULATE([Net Sales], DATESINPERIOD('Calendar'[Date], MAX('Calendar'[Date]), -12, MONTH))
+			formatString: \$#,0
+			displayFolder: 02 Time Intelligence\Rolling Windows
+
+		measure 'Avg Daily Net Sales' = DIVIDE([Net Sales], [Active Days])
+			formatString: \$#,0.00
+			displayFolder: 02 Time Intelligence\Rolling Windows
+
+		/// Each period's share of its year (use with Month on the axis).
+		measure 'Share of Year %' = DIVIDE([Net Sales], CALCULATE([Net Sales], ALLEXCEPT('Calendar', 'Calendar'[Year])))
+			formatString: 0.0%
+			displayFolder: 02 Time Intelligence\Rolling Windows
+
+		measure 'Net Sales YoY Label' =
+				VAR v = [Net Sales YoY %]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v), "0.0%") & " vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'Profit YoY Label' =
+				VAR v = [Profit YoY %]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v), "0.0%") & " vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'Orders YoY Label' =
+				VAR v = [Orders YoY %]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v), "0.0%") & " vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'AOV YoY Label' =
+				VAR v = [AOV YoY %]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v), "0.0%") & " vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'Customers YoY Label' =
+				VAR v = [Customers YoY %]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v), "0.0%") & " vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'Margin Change Label' =
+				VAR v = [Margin Change (pts)]
+				RETURN
+					IF(ISBLANK(v), "No prior period",
+						IF(v >= 0, "▲ ", "▼ ") & FORMAT(ABS(v) * 100, "0.0") & " pts vs last year")
+			displayFolder: 03 KPI Cards\Labels
+
+		measure 'Net Sales Change Color' = IF(ISBLANK([Net Sales YoY %]), "#9297A2", IF([Net Sales YoY %] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'Profit Change Color' = IF(ISBLANK([Profit YoY %]), "#9297A2", IF([Profit YoY %] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'Orders Change Color' = IF(ISBLANK([Orders YoY %]), "#9297A2", IF([Orders YoY %] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'AOV Change Color' = IF(ISBLANK([AOV YoY %]), "#9297A2", IF([AOV YoY %] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'Customers Change Color' = IF(ISBLANK([Customers YoY %]), "#9297A2", IF([Customers YoY %] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'Margin Change Color' = IF(ISBLANK([Margin Change (pts)]), "#9297A2", IF([Margin Change (pts)] >= 0, "#22A861", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		/// Green up to 5%, amber up to 8%, red above.
+		measure 'Cancellation Rate Color' = IF([Cancellation Rate %] <= 0.05, "#22A861", IF([Cancellation Rate %] <= 0.08, "#F5A623", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		/// Green from 90%, amber from 80%, red below.
+		measure 'On-Time Delivery Color' = IF([On-Time Delivery %] >= 0.9, "#22A861", IF([On-Time Delivery %] >= 0.8, "#F5A623", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		/// Green up to 5%, amber up to 8%, red above.
+		measure 'Return Rate Color' = IF([Return Rate %] <= 0.05, "#22A861", IF([Return Rate %] <= 0.08, "#F5A623", "#E5484D"))
+			displayFolder: 03 KPI Cards\Colors
+
+		measure 'Products Sold' =
+				CALCULATE(
+					DISTINCTCOUNT(OrderItems[product_id]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Performance
+
+		measure 'Catalog Products' = DISTINCTCOUNT(ProductCatalog[product_id])
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Performance
+
+		/// Share of the catalogue that sold at least once.
+		measure 'Active Products %' = DIVIDE([Products Sold], [Catalog Products])
+			formatString: 0.0%
+			displayFolder: 04 Products & Brands\Performance
+
+		/// Average catalogue rating of products that sold in the selection.
+		measure 'Avg Product Rating' = AVERAGEX(FILTER(ProductCatalog, [Units Sold] > 0), ProductCatalog[product_rating])
+			formatString: 0.00
+			displayFolder: 04 Products & Brands\Performance
+
+		measure 'Product Sales Rank' = IF(ISBLANK([Net Sales]), BLANK(), RANKX(ALLSELECTED(ProductCatalog[product_name]), [Net Sales], , DESC, Dense))
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		measure 'Brand Sales Rank' = IF(ISBLANK([Net Sales]), BLANK(), RANKX(ALLSELECTED(ProductCatalog[brand]), [Net Sales], , DESC, Dense))
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		measure 'Category Sales Rank' = IF(ISBLANK([Net Sales]), BLANK(), RANKX(ALLSELECTED(ProductCatalog[product_category]), [Net Sales], , DESC, Dense))
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		/// Pareto line: use with product_name sorted by Net Sales descending.
+		measure 'Cumulative Sales %' =
+				VAR Cur = [Net Sales]
+				VAR AllProducts = ALLSELECTED(ProductCatalog[product_name])
+				VAR Total = CALCULATE([Net Sales], ALLSELECTED(ProductCatalog[product_name]))
+				VAR Cum = SUMX(FILTER(AllProducts, [Net Sales] >= Cur), [Net Sales])
+				RETURN
+					IF(ISBLANK(Cur), BLANK(), DIVIDE(Cum, Total))
+			formatString: 0.0%
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		measure 'Pareto Class' =
+				VAR c = [Cumulative Sales %]
+				RETURN
+					IF(ISBLANK(c), BLANK(),
+						IF(c <= 0.8, "A - Top 80%", IF(c <= 0.95, "B - Next 15%", "C - Last 5%")))
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		measure 'Top 10 Products Net Sales' = CALCULATE([Net Sales], TOPN(10, ALLSELECTED(ProductCatalog[product_name]), [Net Sales], DESC))
+			formatString: \$#,0
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		measure 'Top 10 Products Share %' = DIVIDE([Top 10 Products Net Sales], CALCULATE([Net Sales], ALLSELECTED(ProductCatalog[product_name])))
+			formatString: 0.0%
+			displayFolder: 04 Products & Brands\Ranking & Pareto
+
+		/// Actual selling price vs catalogue list price (100% = sold at list).
+		measure 'Price Realization %' =
+				DIVIDE(
+					[Gross Sales],
+					CALCULATE(
+						SUMX(OrderItems, OrderItems[quantity] * RELATED(ProductCatalog[unit_price])),
+						Orders[order_status] <> "Cancelled",
+						Orders[delivery_status] <> "Cancelled"
+					)
+				)
+			formatString: 0.0%
+			displayFolder: 04 Products & Brands\Pricing
+
+		measure 'Loss-Making Products' = COUNTROWS(FILTER(ProductCatalog, [Total Profit] < 0))
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Profit Risk
+
+		measure 'Unprofitable Lines' =
+				CALCULATE(
+					COUNTROWS(OrderItems),
+					OrderItems[profit] < 0,
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 04 Products & Brands\Profit Risk
+
+		measure 'Unprofitable Items %' = DIVIDE([Unprofitable Lines], [Order Lines])
+			formatString: 0.0%
+			displayFolder: 04 Products & Brands\Profit Risk
+
+		measure 'Loss from Unprofitable Items' = CALCULATE([Total Profit], OrderItems[profit] < 0)
+			formatString: \$#,0
+			displayFolder: 04 Products & Brands\Profit Risk
+
+		/// Customers with at least one valid order in the selection.
+		measure 'Active Customers' =
+				CALCULATE(
+					DISTINCTCOUNT(Orders[customer_id]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 05 Customers\Base & Acquisition
+
+		measure 'Registered Customers' = DISTINCTCOUNT(Customers[customer_id])
+			formatString: #,0
+			displayFolder: 05 Customers\Base & Acquisition
+
+		/// Helper: the customer's first valid order, ignoring the date selection.
+		measure 'Customer First Order Date' =
+				CALCULATE(
+					MIN(Orders[order_date]),
+					REMOVEFILTERS('Calendar'),
+					ALLEXCEPT(Orders, Orders[customer_id]),
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: dd-mmm-yyyy
+			displayFolder: 05 Customers\Base & Acquisition
+
+		/// Helper: 1 when the customer's first order falls in the selected period.
+		measure 'Is New Customer' =
+				VAR f = [Customer First Order Date]
+				RETURN
+					IF(f >= MIN('Calendar'[Date]) && f <= MAX('Calendar'[Date]) && [Total Orders] > 0, 1, 0)
+			formatString: 0
+			displayFolder: 05 Customers\Base & Acquisition
+
+		/// Customers whose first valid order falls in the selected period.
+		measure 'New Customers' = SUMX(VALUES(Customers[customer_id]), [Is New Customer])
+			formatString: #,0
+			displayFolder: 05 Customers\Base & Acquisition
+
+		measure 'Returning Customers' = MAX(0, [Active Customers] - [New Customers])
+			formatString: #,0
+			displayFolder: 05 Customers\Base & Acquisition
+
+		measure 'New Customer Share %' = DIVIDE([New Customers], [Active Customers])
+			formatString: 0.0%
+			displayFolder: 05 Customers\Base & Acquisition
+
+		/// Customers with more than one valid order in the selection.
+		measure 'Repeat Customers' = COUNTROWS(FILTER(VALUES(Customers[customer_id]), [Total Orders] > 1))
+			formatString: #,0
+			displayFolder: 05 Customers\Retention
+
+		measure 'Repeat Rate %' = DIVIDE([Repeat Customers], [Active Customers])
+			formatString: 0.0%
+			displayFolder: 05 Customers\Retention
+
+		measure 'Orders per Customer' = DIVIDE([Total Orders], [Active Customers])
+			formatString: 0.00
+			displayFolder: 05 Customers\Retention
+
+		measure 'Revenue per Customer' = DIVIDE([Net Sales], [Active Customers])
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		measure 'Profit per Customer' = DIVIDE([Total Profit], [Active Customers])
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		/// Average all-time net sales per purchasing customer.
+		measure 'Customer Lifetime Value (Avg)' = AVERAGEX(VALUES(Customers[customer_id]), CALCULATE([Net Sales], REMOVEFILTERS('Calendar')))
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		/// Average all-time profit per purchasing customer.
+		measure 'Customer Lifetime Profit (Avg)' = AVERAGEX(VALUES(Customers[customer_id]), CALCULATE([Total Profit], REMOVEFILTERS('Calendar')))
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		/// Average acquisition cost across customers in the selection.
+		measure 'Avg CAC' = AVERAGE(Customers[customer_acquisition_cost])
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		measure 'New Customers Acquisition Cost' = SUMX(VALUES(Customers[customer_id]), [Is New Customer] * CALCULATE(MAX(Customers[customer_acquisition_cost])))
+			formatString: \$#,0
+			displayFolder: 05 Customers\Value & CAC
+
+		/// Average acquisition cost of customers acquired in the period.
+		measure 'Avg CAC (New Customers)' = DIVIDE([New Customers Acquisition Cost], [New Customers])
+			formatString: \$#,0.00
+			displayFolder: 05 Customers\Value & CAC
+
+		/// Lifetime profit per customer divided by CAC. Above 3x is healthy.
+		measure 'LTV to CAC Ratio' = DIVIDE([Customer Lifetime Profit (Avg)], [Avg CAC])
+			formatString: 0.0"x"
+			displayFolder: 05 Customers\Value & CAC
+
+		measure 'Premium & VIP Sales Share %' = DIVIDE(CALCULATE([Net Sales], Customers[customer_segment] IN {"Premium", "VIP"}), [Net Sales])
+			formatString: 0.0%
+			displayFolder: 05 Customers\Segments
+
+		measure 'Orders with Coupon' =
+				CALCULATE(
+					DISTINCTCOUNT(OrderItems[order_id]),
+					Orders[coupon_code] <> "",
+					Orders[order_status] <> "Cancelled",
+					Orders[delivery_status] <> "Cancelled"
+				)
+			formatString: #,0
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Coupon Usage %' = DIVIDE([Orders with Coupon], [Total Orders])
+			formatString: 0.0%
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Coupon Discount Value' = CALCULATE([Discount], Orders[coupon_code] <> "")
+			formatString: \$#,0
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Coupon Net Sales' = CALCULATE([Net Sales], Orders[coupon_code] <> "")
+			formatString: \$#,0
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Coupon AOV' = DIVIDE([Coupon Net Sales], [Orders with Coupon])
+			formatString: \$#,0.00
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'No-Coupon AOV' = DIVIDE(CALCULATE([Net Sales], Orders[coupon_code] = ""), [Total Orders] - [Orders with Coupon])
+			formatString: \$#,0.00
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Campaign Sales Share %' = DIVIDE(CALCULATE([Net Sales], Orders[campaign_name] <> "Default_Campaign"), [Net Sales])
+			formatString: 0.0%
+			displayFolder: 06 Marketing & Channels\Coupons & Campaigns
+
+		measure 'Mobile App Share %' = DIVIDE(CALCULATE([Net Sales], Orders[sales_channel] = "Mobile App"), [Net Sales])
+			formatString: 0.0%
+			displayFolder: 06 Marketing & Channels\Channels
+
+		measure 'Paid Channels Sales Share %' = DIVIDE(CALCULATE([Net Sales], Orders[marketing_channel] IN {"Paid Search", "Social Media", "YouTube"}), [Net Sales])
+			formatString: 0.0%
+			displayFolder: 06 Marketing & Channels\Channels
+
+		measure 'Loyalty Points Earned' = SUM(Orders[loyalty_points_earned])
+			formatString: #,0
+			displayFolder: 06 Marketing & Channels\Loyalty
+
+		measure 'Loyalty Points Redeemed' = SUM(Orders[loyalty_points_redeemed])
+			formatString: #,0
+			displayFolder: 06 Marketing & Channels\Loyalty
+
+		measure 'Points Redemption Rate %' = DIVIDE([Loyalty Points Redeemed], [Loyalty Points Earned])
+			formatString: 0.0%
+			displayFolder: 06 Marketing & Channels\Loyalty
+
+		measure 'Delivered Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[delivery_status] IN {"On Time", "Delayed"})
+			formatString: #,0
+			displayFolder: 07 Operations\Delivery
+
+		measure 'On-Time Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[delivery_status] = "On Time")
+			formatString: #,0
+			displayFolder: 07 Operations\Delivery
+
+		measure 'Delayed Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[delivery_status] = "Delayed")
+			formatString: #,0
+			displayFolder: 07 Operations\Delivery
+
+		measure 'On-Time Delivery %' = DIVIDE([On-Time Orders], [Delivered Orders])
+			formatString: 0.0%
+			displayFolder: 07 Operations\Delivery
+
+		measure 'Delayed Delivery %' = DIVIDE([Delayed Orders], [Delivered Orders])
+			formatString: 0.0%
+			displayFolder: 07 Operations\Delivery
+
+		measure 'Avg Delivery Days' = AVERAGE(Orders[delivery_days])
+			formatString: 0.0
+			displayFolder: 07 Operations\Delivery
+
+		measure 'Avg Delay (Days)' = AVERAGEX(FILTER(Orders, Orders[delivery_status] = "Delayed"), Orders[delivery_days] - Orders[estimated_delivery_days])
+			formatString: 0.0
+			displayFolder: 07 Operations\Delivery
+
+		measure 'Returned Orders' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[return_status] <> "")
+			formatString: #,0
+			displayFolder: 07 Operations\Returns
+
+		measure 'Return Rate %' = DIVIDE([Returned Orders], [Delivered Orders])
+			formatString: 0.0%
+			displayFolder: 07 Operations\Returns
+
+		measure 'Returned Sales' = CALCULATE([Net Sales], Orders[return_status] <> "")
+			formatString: \$#,0
+			displayFolder: 07 Operations\Returns
+
+		measure 'Returned Sales %' = DIVIDE([Returned Sales], [Net Sales])
+			formatString: 0.0%
+			displayFolder: 07 Operations\Returns
+
+		measure 'Avg Shipping Cost per Order' = DIVIDE([Shipping Cost], [Total Orders])
+			formatString: \$#,0.00
+			displayFolder: 07 Operations\Shipping & Payment
+
+		measure 'Shipping Cost % of Sales' = DIVIDE([Shipping Cost], [Net Sales])
+			formatString: 0.0%
+			displayFolder: 07 Operations\Shipping & Payment
+
+		measure 'Paid Orders %' = DIVIDE(CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[payment_status] = "Paid"), DISTINCTCOUNT(Orders[order_id]))
+			formatString: 0.0%
+			displayFolder: 07 Operations\Shipping & Payment
+
+		measure 'Failed Payments' = CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[payment_status] = "Failed")
+			formatString: #,0
+			displayFolder: 07 Operations\Shipping & Payment
+
+		measure 'Avg Customer Rating' = AVERAGE(Orders[customer_rating])
+			formatString: 0.00
+			displayFolder: 08 Customer Experience
+
+		/// Orders that have a review. KEEPFILTERS lets it work with review_sentiment on a visual axis.
+		measure 'Reviewed Orders' =
+				CALCULATE(
+					DISTINCTCOUNT(Orders[order_id]),
+					KEEPFILTERS(Orders[review_sentiment] <> "")
+				)
+			formatString: #,0
+			displayFolder: 08 Customer Experience
+
+		measure 'Positive Reviews %' = DIVIDE(CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[review_sentiment] = "Positive"), [Reviewed Orders])
+			formatString: 0.0%
+			displayFolder: 08 Customer Experience
+
+		measure 'Neutral Reviews %' = DIVIDE(CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[review_sentiment] = "Neutral"), [Reviewed Orders])
+			formatString: 0.0%
+			displayFolder: 08 Customer Experience
+
+		measure 'Negative Reviews %' = DIVIDE(CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[review_sentiment] = "Negative"), [Reviewed Orders])
+			formatString: 0.0%
+			displayFolder: 08 Customer Experience
+
+		/// Positive share minus negative share.
+		measure 'Net Sentiment Score' = [Positive Reviews %] - [Negative Reviews %]
+			formatString: 0.0%
+			displayFolder: 08 Customer Experience
+
+		/// Share of rated orders with a rating of 4 or more.
+		measure 'CSAT %' = DIVIDE(CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[customer_rating] >= 4), CALCULATE(DISTINCTCOUNT(Orders[order_id]), Orders[customer_rating] > 0))
+			formatString: 0.0%
+			displayFolder: 08 Customer Experience
+
+		measure 'Avg Rating (On-Time)' = CALCULATE(AVERAGE(Orders[customer_rating]), Orders[delivery_status] = "On Time")
+			formatString: 0.00
+			displayFolder: 08 Customer Experience
+
+		measure 'Avg Rating (Delayed)' = CALCULATE(AVERAGE(Orders[customer_rating]), Orders[delivery_status] = "Delayed")
+			formatString: 0.00
+			displayFolder: 08 Customer Experience
+
+		/// How much a late delivery costs in rating points.
+		measure 'Rating Gap (On-Time vs Delayed)' = [Avg Rating (On-Time)] - [Avg Rating (Delayed)]
+			formatString: 0.00
+			displayFolder: 08 Customer Experience
+
+		measure 'Top Category' =
+				VAR t = TOPN(1, ALLSELECTED(ProductCatalog[product_category]), [Net Sales], DESC)
+				RETURN
+					MAXX(t, ProductCatalog[product_category])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Top Brand' =
+				VAR t = TOPN(1, ALLSELECTED(ProductCatalog[brand]), [Net Sales], DESC)
+				RETURN
+					MAXX(t, ProductCatalog[brand])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Top Country' =
+				VAR t = TOPN(1, ALLSELECTED(Customers[customer_country]), [Net Sales], DESC)
+				RETURN
+					MAXX(t, Customers[customer_country])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Top Sales Channel' =
+				VAR t = TOPN(1, ALLSELECTED(Orders[sales_channel]), [Net Sales], DESC)
+				RETURN
+					MAXX(t, Orders[sales_channel])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Best Margin Category' =
+				VAR t = TOPN(1, ALLSELECTED(ProductCatalog[product_category]), [Profit Margin %], DESC)
+				RETURN
+					MAXX(t, ProductCatalog[product_category])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Lowest Margin Category' =
+				VAR t = TOPN(1, ALLSELECTED(ProductCatalog[product_category]), [Profit Margin %], ASC)
+				RETURN
+					MAXX(t, ProductCatalog[product_category])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Peak Month' =
+				VAR t = TOPN(1, ALLSELECTED('Calendar'[Month], 'Calendar'[Month No]), [Net Sales], DESC)
+				RETURN
+					MAXX(t, 'Calendar'[Month])
+			displayFolder: 09 Insights & Titles\Top & Bottom Performers
+
+		measure 'Title - Sales Trend' = "Net Sales & Profit  |  " & [Period Label]
+			displayFolder: 09 Insights & Titles\Dynamic Titles
+
+		measure 'Title - Top Categories' = "Net Sales by Category  |  Top: " & [Top Category]
+			displayFolder: 09 Insights & Titles\Dynamic Titles
+
+		measure 'Title - Delivery' = "Delivery Performance  |  On-time " & FORMAT([On-Time Delivery %], "0.0%")
+			displayFolder: 09 Insights & Titles\Dynamic Titles
+
+		/// Order IDs in OrderItems that do not exist in Orders.
+		measure 'Orphan Order Lines' = COUNTROWS(EXCEPT(VALUES(OrderItems[order_id]), VALUES(Orders[order_id])))
+			formatString: #,0
+			displayFolder: 10 Data Quality\Integrity (should be 0)
+
+		/// Orders that have no line items.
+		measure 'Orders Without Lines' = COUNTROWS(EXCEPT(VALUES(Orders[order_id]), VALUES(OrderItems[order_id])))
+			formatString: #,0
+			displayFolder: 10 Data Quality\Integrity (should be 0)
+
+		/// Sold products missing from the catalogue.
+		measure 'Orphan Products' = COUNTROWS(EXCEPT(VALUES(OrderItems[product_id]), VALUES(ProductCatalog[product_id])))
+			formatString: #,0
+			displayFolder: 10 Data Quality\Integrity (should be 0)
+
+		/// Order customers missing from Customers.
+		measure 'Orphan Customers' = COUNTROWS(EXCEPT(VALUES(Orders[customer_id]), VALUES(Customers[customer_id])))
+			formatString: #,0
+			displayFolder: 10 Data Quality\Integrity (should be 0)
+
+		/// Repeated order_id + product_id pairs.
+		measure 'Duplicate Order Lines' = COUNTROWS(OrderItems) - COUNTROWS(SUMMARIZE(OrderItems, OrderItems[order_id], OrderItems[product_id]))
+			formatString: #,0
+			displayFolder: 10 Data Quality\Integrity (should be 0)
+
+		/// Lines where gross, net or profit do not follow the dataset formulas.
+		measure 'Lines Failing Arithmetic' =
+				COUNTROWS(
+					FILTER(
+						OrderItems,
+						ABS(OrderItems[gross_sales] - OrderItems[quantity] * OrderItems[unit_price]) > 0.05
+							|| ABS(OrderItems[net_sales] - (OrderItems[gross_sales] - OrderItems[discount_amount] + OrderItems[tax_amount] + OrderItems[shipping_cost])) > 0.05
+							|| ABS(OrderItems[profit] - (OrderItems[net_sales] - OrderItems[product_cost] - OrderItems[shipping_cost])) > 0.05
+					)
+				)
+			formatString: #,0
+			displayFolder: 10 Data Quality\Logic (should be 0)
+
+		/// Orders-level net sales minus the sum of its order lines.
+		measure 'Check - Net Sales (Orders vs Items)' = ROUND(SUM(Orders[net_sales]) - SUM(OrderItems[net_sales]), 2)
+			formatString: #,0.00
+			displayFolder: 10 Data Quality\Reconciliation (should be 0)
+
+		measure 'Check - Quantity (Orders vs Items)' = SUM(Orders[quantity]) - SUM(OrderItems[quantity])
+			formatString: #,0
+			displayFolder: 10 Data Quality\Reconciliation (should be 0)
+
+		measure 'Check - Profit (Orders vs Items)' = ROUND(SUM(Orders[profit]) - SUM(OrderItems[profit]), 2)
+			formatString: #,0.00
+			displayFolder: 10 Data Quality\Reconciliation (should be 0)
+
+		/// Number of failed data checks. Shows 0 when the model is healthy.
+		measure 'Checks Failing (should be 0)' =
+				IF([Orphan Order Lines] > 0, 1, 0)
+					+ IF([Orders Without Lines] > 0, 1, 0)
+					+ IF([Orphan Products] > 0, 1, 0)
+					+ IF([Orphan Customers] > 0, 1, 0)
+					+ IF([Duplicate Order Lines] > 0, 1, 0)
+					+ IF([Lines Failing Arithmetic] > 0, 1, 0)
+					+ IF(ABS([Check - Net Sales (Orders vs Items)]) > 0.5, 1, 0)
+					+ IF([Check - Quantity (Orders vs Items)] <> 0, 1, 0)
+					+ IF(ABS([Check - Profit (Orders vs Items)]) > 0.5, 1, 0)
+			formatString: #,0
+			displayFolder: 10 Data Quality

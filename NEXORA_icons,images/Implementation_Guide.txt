@@ -1,0 +1,82 @@
+NEXORA — Power BI Graduation Project Starter Kit
+================================================
+
+Brand
+-----
+Name: NEXORA
+Tagline: GLOBAL BRANDS. ONE DESTINATION.
+Direction: Hybrid — dark cover, light analytical pages.
+Palette:
+  Midnight Black  #101114
+  Graphite        #252831
+  Cloud White     #F4F5F7
+  Electric Lime   #C8FF36
+  Secondary Gray  #9297A2
+  Border          #E2E5EA
+
+Files
+-----
+01_dark_analytics_background.png
+  Dark alternative for special/introductory analytical pages.
+02_premium_cover_background.png
+  Main title / cover background. Add title text in Power BI separately.
+03_light_analytics_background.png
+  Recommended standard background for analytical pages.
+04_product_showcase_background.png
+  Product-themed cover option; generic product silhouettes, no brand logos.
+NEXORA_PowerBI_Theme.json
+  Starter theme for Power BI. Import from View > Themes > Browse for themes.
+
+Suggested report size
+---------------------
+Power BI Desktop > Format page > Canvas settings > Type: 16:9.
+Reference background size: 1920 x 1080 px. Set image fit to Fit where available.
+Power BI export resolution can differ depending on the export method and settings.
+
+Recommended page structure
+--------------------------
+1. Executive Overview
+   KPI cards: Revenue, Profit, Profit Margin, Orders, Average Order Value
+   Charts: monthly revenue trend, revenue by category, top brands
+2. Brand Performance
+   Revenue and profit by brand, brand contribution, monthly trend, brand/date filters
+3. Product Intelligence
+   Top products, units sold, product revenue/profit, category comparisons
+4. Customer & Market Insights
+   Geographic sales, customer segments and repeat purchase metrics only if supported
+   by the dataset.
+
+Data model checklist
+--------------------
+- Prefer a star schema: FactSales plus Date, Product, Brand, Customer, Geography dimensions
+  where supported by the available fields.
+- Ensure keys have consistent data types and appropriate relationships.
+- Use a proper Date table and mark it as the date table.
+- Use measures rather than calculated columns for additive business metrics when appropriate.
+- Validate totals against the source file before presenting insights.
+- Do not report margin, customer retention, market share, or profit unless the source data
+  supports the required fields and definitions.
+
+Starter DAX (rename table/column references to match your data)
+--------------------------------------------------------------
+Total Revenue = SUM(FactSales[SalesAmount])
+Total Orders = DISTINCTCOUNT(FactSales[OrderID])
+Units Sold = SUM(FactSales[Quantity])
+Total Profit = SUM(FactSales[Profit])
+Profit Margin = DIVIDE([Total Profit], [Total Revenue])
+Average Order Value = DIVIDE([Total Revenue], [Total Orders])
+
+If there is no SalesAmount column but there are quantity and unit price:
+Total Revenue = SUMX(FactSales, FactSales[Quantity] * FactSales[UnitPrice])
+
+If there is no Profit column or cost data, do not invent profit. Use available metrics instead.
+If OrderID is missing, do not assume row count equals order count without validating the grain.
+
+Visual style rules
+------------------
+- Use the lime accent selectively.
+- Use white cards on the light background, with restrained borders and rounded corners.
+- Keep slicers in one consistent row or a left-side panel.
+- Keep charts uncluttered; prefer horizontal bars for brand ranking.
+- Use conditional colors only when the business meaning is clear.
+- Keep titles, margins, and number formats consistent across pages.

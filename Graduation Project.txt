@@ -1,0 +1,39 @@
+Graduation Project - Data Analysis
+Overview
+This project analyzes E Commercesales data using Excel and Power BI.
+
+Tools Used
+
+Microsoft Excel
+SQL
+Power Query
+Power BI
+Project Objectives
+Data cleaning
+Data Modeling
+Data analysis
+Dax
+TMDL
+Dashboard creation
+Business insights extraction
+Dashboard Preview
+
+
+
+Files
+Excel datasets
+Power BI dashboard (.pbix)
+Final report
+PDF
+
+DEPI round 5
+NHA
+Professional Data Analysis
+Team 4
+Mohammed Adel Elsayed Basyouny
+Shehab Ali Abdellatif
+Mohamed Saad Mohamed Nazmy
+Mohamed Gamal Hassan Badreldin
+
+Project leader email
+mo7amed.3del1992@gmail.com 
